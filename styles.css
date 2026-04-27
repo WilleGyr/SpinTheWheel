@@ -290,8 +290,22 @@ input {
   width: 100%;
   height: 100%;
   border-radius: 50%;
-  filter: drop-shadow(0 20px 60px rgba(0, 0, 0, 0.5));
   z-index: 1;
+  /* Promote to its own compositor layer so rotation is GPU-only, no repaint */
+  will-change: transform;
+  transform: translateZ(0);
+  backface-visibility: hidden;
+}
+
+.wheel-stage::after {
+  /* Centered cast shadow that doesn't rotate with the wheel */
+  content: '';
+  position: absolute;
+  inset: 8%;
+  border-radius: 50%;
+  box-shadow: 0 30px 80px rgba(0, 0, 0, 0.55);
+  z-index: 0;
+  pointer-events: none;
 }
 
 .pointer {

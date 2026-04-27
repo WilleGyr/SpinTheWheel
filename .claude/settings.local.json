@@ -1,0 +1,13 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(git -C \"C:/Users/willi/Desktop/Scripts/SpinTheWheel\" add index.html styles.css script.js)",
+      "Bash(git -C \"C:/Users/willi/Desktop/Scripts/SpinTheWheel\" status)",
+      "Bash(git -C C:/Users/willi/Desktop/Scripts/SpinTheWheel commit -m ' *)",
+      "Bash(gh api *)",
+      "PowerShell(gh api -X POST repos/WilleGyr/SpinTheWheel/pages -f source[branch]=main -f source[path]=/)",
+      "Bash(git -C \"C:/Users/willi/Desktop/Scripts/SpinTheWheel\" add -A)",
+      "Bash(git -C \"C:/Users/willi/Desktop/Scripts/SpinTheWheel\" push)"
+    ]
+  }
+}

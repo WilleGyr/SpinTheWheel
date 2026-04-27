@@ -58,145 +58,176 @@
   }
 
   // ====== WHEEL RENDERING ======
+  // We pre-render the wheel to an offscreen canvas once whenever items / size
+  // change. Each animation frame just clears, rotates, and blits the cache —
+  // no gradients, no text measurement, no shadows per frame.
+  const wheelCache = document.createElement('canvas');
+  const wheelCacheCtx = wheelCache.getContext('2d');
+  let wheelCacheSize = 0;
+  let dprCached = 1;
+
   function setupCanvas() {
     const dpr = window.devicePixelRatio || 1;
+    dprCached = dpr;
     const rect = canvas.getBoundingClientRect();
     const size = Math.floor(rect.width);
     canvas.width = size * dpr;
     canvas.height = size * dpr;
     ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-    drawWheel();
+    wheelCacheSize = size;
+    refreshWheel();
   }
 
-  function drawWheel() {
-    const rect = canvas.getBoundingClientRect();
-    const W = rect.width;
-    const H = rect.height;
-    const cx = W / 2;
-    const cy = H / 2;
-    const radius = Math.min(W, H) / 2 - 6;
+  function rebuildWheelCache() {
+    const size = wheelCacheSize;
+    if (!size) return;
+    const dpr = dprCached;
+    wheelCache.width = size * dpr;
+    wheelCache.height = size * dpr;
+    const c = wheelCacheCtx;
+    c.setTransform(dpr, 0, 0, dpr, 0, 0);
+    c.clearRect(0, 0, size, size);
 
-    ctx.clearRect(0, 0, W, H);
+    if (items.length === 0) return;
 
-    if (items.length === 0) {
-      drawEmptyWheel(cx, cy, radius);
-      return;
-    }
-
+    const cx = size / 2;
+    const cy = size / 2;
+    const radius = size / 2 - 6;
     const n = items.length;
     const segAngle = (Math.PI * 2) / n;
 
-    ctx.save();
-    ctx.translate(cx, cy);
-    ctx.rotate(rotation);
+    c.save();
+    c.translate(cx, cy);
 
     // Segments
     for (let i = 0; i < n; i++) {
-      const start = i * segAngle - Math.PI / 2; // start at top
+      const start = i * segAngle - Math.PI / 2;
       const end = start + segAngle;
       const baseColor = colorFor(i, n);
 
-      // Radial gradient per segment for depth
-      const grad = ctx.createRadialGradient(0, 0, radius * 0.15, 0, 0, radius);
+      const grad = c.createRadialGradient(0, 0, radius * 0.15, 0, 0, radius);
       grad.addColorStop(0, lighten(baseColor, 12));
       grad.addColorStop(1, darken(baseColor, 8));
 
-      ctx.beginPath();
-      ctx.moveTo(0, 0);
-      ctx.arc(0, 0, radius, start, end);
-      ctx.closePath();
-      ctx.fillStyle = grad;
-      ctx.fill();
+      c.beginPath();
+      c.moveTo(0, 0);
+      c.arc(0, 0, radius, start, end);
+      c.closePath();
+      c.fillStyle = grad;
+      c.fill();
 
-      // Subtle separator lines
-      ctx.strokeStyle = 'rgba(0, 0, 0, 0.18)';
-      ctx.lineWidth = 1;
-      ctx.stroke();
+      c.strokeStyle = 'rgba(0, 0, 0, 0.18)';
+      c.lineWidth = 1;
+      c.stroke();
     }
 
-    // Inner shine ring
-    ctx.beginPath();
-    ctx.arc(0, 0, radius, 0, Math.PI * 2);
-    const shine = ctx.createRadialGradient(0, -radius * 0.3, radius * 0.1, 0, 0, radius);
+    // Inner shine
+    c.beginPath();
+    c.arc(0, 0, radius, 0, Math.PI * 2);
+    const shine = c.createRadialGradient(0, -radius * 0.3, radius * 0.1, 0, 0, radius);
     shine.addColorStop(0, 'rgba(255, 255, 255, 0.18)');
     shine.addColorStop(0.4, 'rgba(255, 255, 255, 0)');
-    ctx.fillStyle = shine;
-    ctx.fill();
+    c.fillStyle = shine;
+    c.fill();
 
     // Labels
     for (let i = 0; i < n; i++) {
-      const start = i * segAngle - Math.PI / 2;
-      const mid = start + segAngle / 2;
-      drawLabel(items[i], mid, radius, segAngle);
+      const mid = i * segAngle - Math.PI / 2 + segAngle / 2;
+      drawLabel(c, items[i], mid, radius, segAngle);
     }
 
-    // Outer rim
-    ctx.beginPath();
-    ctx.arc(0, 0, radius, 0, Math.PI * 2);
-    ctx.lineWidth = 4;
-    ctx.strokeStyle = 'rgba(255, 255, 255, 0.06)';
-    ctx.stroke();
+    // Outer rims
+    c.beginPath();
+    c.arc(0, 0, radius, 0, Math.PI * 2);
+    c.lineWidth = 4;
+    c.strokeStyle = 'rgba(255, 255, 255, 0.06)';
+    c.stroke();
 
-    ctx.beginPath();
-    ctx.arc(0, 0, radius - 2, 0, Math.PI * 2);
-    ctx.lineWidth = 1;
-    ctx.strokeStyle = 'rgba(0, 0, 0, 0.4)';
-    ctx.stroke();
+    c.beginPath();
+    c.arc(0, 0, radius - 2, 0, Math.PI * 2);
+    c.lineWidth = 1;
+    c.strokeStyle = 'rgba(0, 0, 0, 0.4)';
+    c.stroke();
 
-    // Tick dots at segment edges (subtle)
+    // Tick dots at segment edges
     if (n > 1 && n <= 60) {
       for (let i = 0; i < n; i++) {
         const a = i * segAngle - Math.PI / 2;
         const tx = Math.cos(a) * (radius - 10);
         const ty = Math.sin(a) * (radius - 10);
-        ctx.beginPath();
-        ctx.arc(tx, ty, 2, 0, Math.PI * 2);
-        ctx.fillStyle = 'rgba(255, 255, 255, 0.35)';
-        ctx.fill();
+        c.beginPath();
+        c.arc(tx, ty, 2, 0, Math.PI * 2);
+        c.fillStyle = 'rgba(255, 255, 255, 0.35)';
+        c.fill();
       }
     }
 
-    ctx.restore();
+    c.restore();
   }
 
-  function drawLabel(text, midAngle, radius, segAngle) {
-    ctx.save();
-    ctx.rotate(midAngle);
-    ctx.textAlign = 'right';
-    ctx.textBaseline = 'middle';
+  function drawWheel() {
+    // Renders the wheel at orientation 0 onto the visible canvas.
+    // Live rotation during spin is applied via CSS transform (GPU-only).
+    const size = wheelCacheSize;
+    if (!size) return;
+    const cx = size / 2;
+    const cy = size / 2;
 
-    // Choose font size based on segment angle and label length
+    ctx.clearRect(0, 0, size, size);
+
+    if (items.length === 0) {
+      drawEmptyWheel(cx, cy, size / 2 - 6);
+      return;
+    }
+
+    ctx.drawImage(wheelCache, 0, 0, size, size);
+  }
+
+  function applyRotation(r) {
+    canvas.style.transform = `translateZ(0) rotate(${r}rad)`;
+  }
+
+  function refreshWheel() {
+    rebuildWheelCache();
+    drawWheel();
+    applyRotation(rotation);
+  }
+
+  function drawLabel(c, text, midAngle, radius, segAngle) {
+    c.save();
+    c.rotate(midAngle);
+    c.textAlign = 'right';
+    c.textBaseline = 'middle';
+
     const arcLen = segAngle * radius;
     const maxFont = Math.min(22, Math.max(11, arcLen / 3.2));
     const padding = 18;
     const maxWidth = radius - padding - radius * 0.18;
 
     let fontSize = maxFont;
-    ctx.font = `600 ${fontSize}px 'Inter', sans-serif`;
+    c.font = `600 ${fontSize}px 'Inter', sans-serif`;
     let display = text;
-    let measured = ctx.measureText(display).width;
+    let measured = c.measureText(display).width;
 
-    // Shrink to fit
     while (measured > maxWidth && fontSize > 9) {
       fontSize -= 1;
-      ctx.font = `600 ${fontSize}px 'Inter', sans-serif`;
-      measured = ctx.measureText(display).width;
+      c.font = `600 ${fontSize}px 'Inter', sans-serif`;
+      measured = c.measureText(display).width;
     }
 
-    // If still too wide, ellipsis
     if (measured > maxWidth) {
-      while (display.length > 1 && ctx.measureText(display + '…').width > maxWidth) {
+      while (display.length > 1 && c.measureText(display + '…').width > maxWidth) {
         display = display.slice(0, -1);
       }
       display = display + '…';
     }
 
-    ctx.fillStyle = 'rgba(20, 20, 30, 0.95)';
-    ctx.shadowColor = 'rgba(255, 255, 255, 0.25)';
-    ctx.shadowBlur = 2;
-    ctx.shadowOffsetY = 0.5;
-    ctx.fillText(display, radius - padding, 0);
-    ctx.restore();
+    c.fillStyle = 'rgba(20, 20, 30, 0.95)';
+    c.shadowColor = 'rgba(255, 255, 255, 0.25)';
+    c.shadowBlur = 2;
+    c.shadowOffsetY = 0.5;
+    c.fillText(display, radius - padding, 0);
+    c.restore();
   }
 
   function drawEmptyWheel(cx, cy, radius) {
@@ -279,7 +310,7 @@
     items.push(trimmed);
     saveItems();
     renderList();
-    drawWheel();
+    refreshWheel();
   }
 
   function removeItem(idx) {
@@ -290,13 +321,13 @@
         items.splice(idx, 1);
         saveItems();
         renderList();
-        drawWheel();
+        refreshWheel();
       }, 220);
     } else {
       items.splice(idx, 1);
       saveItems();
       renderList();
-      drawWheel();
+      refreshWheel();
     }
   }
 
@@ -305,7 +336,7 @@
     items = [];
     saveItems();
     renderList();
-    drawWheel();
+    refreshWheel();
   }
 
   function shuffleItems() {
@@ -315,7 +346,7 @@
     }
     saveItems();
     renderList();
-    drawWheel();
+    refreshWheel();
   }
 
   // ====== SPIN ======
@@ -333,9 +364,7 @@
 
     const n = items.length;
     const segAngle = (Math.PI * 2) / n;
-
     const startRotation = rotation;
-    // 5–8 full turns + random
     const turns = 5 + Math.random() * 3;
     const extra = Math.random() * Math.PI * 2;
     const totalDelta = turns * Math.PI * 2 + extra;
@@ -344,13 +373,12 @@
     const t0 = performance.now();
 
     function frame(now) {
-      const t = Math.min(1, (now - t0) / duration);
+      const t = now - t0 >= duration ? 1 : (now - t0) / duration;
       const eased = easeOutQuart(t);
       rotation = startRotation + totalDelta * eased;
-      drawWheel();
+      applyRotation(rotation);
 
-      // Tick effect when crossing segment boundaries
-      const currentSeg = currentSegmentIndex();
+      const currentSeg = ((Math.floor(-rotation / segAngle) % n) + n) % n;
       if (currentSeg !== lastTickSegment && lastTickSegment !== -1) {
         triggerTick();
       }
@@ -360,7 +388,7 @@
         requestAnimationFrame(frame);
       } else {
         rotation = endRotation;
-        drawWheel();
+        applyRotation(rotation);
         finishSpin();
       }
     }
@@ -389,8 +417,10 @@
     spinBtn.disabled = false;
     spinBtn.classList.remove('spinning');
 
-    // Normalize rotation to keep numbers small
+    // Normalize rotation to keep numbers small, then re-apply so the canvas
+    // visually matches the new (equivalent) angle.
     rotation = rotation % (Math.PI * 2);
+    applyRotation(rotation);
 
     if (winner != null) {
       showResult(winner, winnerIdx);
@@ -528,7 +558,7 @@
       items.splice(lastWinnerIdx, 1);
       saveItems();
       renderList();
-      drawWheel();
+      refreshWheel();
     }
     hideResult();
   });
