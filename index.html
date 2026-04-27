@@ -1,0 +1,112 @@
+<!DOCTYPE html>
+<html lang="sv">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Spin the Wheel</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <div class="bg">
+    <div class="aurora aurora-1"></div>
+    <div class="aurora aurora-2"></div>
+    <div class="aurora aurora-3"></div>
+    <div class="grid"></div>
+    <div class="grain"></div>
+  </div>
+
+  <main class="container">
+    <header class="hero">
+      <div class="badge"><span class="dot"></span>Live</div>
+      <h1 class="title">Spin<span class="title-accent"> the </span>Wheel</h1>
+      <p class="subtitle">Lägg till valfria alternativ — låt slumpen avgöra.</p>
+    </header>
+
+    <div class="layout">
+      <section class="wheel-section">
+        <div class="wheel-stage">
+          <div class="wheel-glow"></div>
+          <div class="wheel-ring"></div>
+          <div class="pointer">
+            <svg viewBox="0 0 40 56" aria-hidden="true">
+              <defs>
+                <linearGradient id="ptr" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="0%" stop-color="#ffffff"/>
+                  <stop offset="100%" stop-color="#d8d8e0"/>
+                </linearGradient>
+              </defs>
+              <path d="M20 54 L2 14 Q20 -4 38 14 Z" fill="url(#ptr)"/>
+              <circle cx="20" cy="14" r="4" fill="#1a1a24"/>
+            </svg>
+          </div>
+          <canvas id="wheel" width="640" height="640"></canvas>
+          <button class="spin-btn" id="spinBtn" aria-label="Snurra hjulet">
+            <span class="spin-btn-inner">
+              <span class="spin-text">SPIN</span>
+            </span>
+          </button>
+        </div>
+      </section>
+
+      <section class="panel">
+        <div class="panel-header">
+          <h2>Alternativ</h2>
+          <span class="counter"><span id="count">0</span></span>
+        </div>
+
+        <form class="input-row" id="addForm" autocomplete="off">
+          <input
+            type="text"
+            id="itemInput"
+            placeholder="Skriv ett alternativ…"
+            maxlength="40"
+            spellcheck="false"
+          />
+          <button type="submit" id="addBtn" aria-label="Lägg till">
+            <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round">
+              <path d="M12 5v14M5 12h14"/>
+            </svg>
+          </button>
+        </form>
+
+        <ul class="items-list" id="itemsList"></ul>
+
+        <div class="panel-footer">
+          <button class="ghost-btn" id="clearBtn">
+            <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M3 6h18M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2m3 0v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6"/>
+            </svg>
+            Rensa allt
+          </button>
+          <button class="ghost-btn" id="shuffleBtn">
+            <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M16 3h5v5M4 20l16-16M21 16v5h-5M15 15l6 6M4 4l5 5"/>
+            </svg>
+            Blanda
+          </button>
+        </div>
+      </section>
+    </div>
+  </main>
+
+  <div class="result" id="resultModal" aria-hidden="true">
+    <div class="result-backdrop"></div>
+    <div class="result-card">
+      <div class="result-glow"></div>
+      <p class="result-label">Vinnare</p>
+      <h2 class="result-text" id="resultText">—</h2>
+      <div class="result-actions">
+        <button class="btn-primary" id="closeResult">Spinna igen</button>
+        <button class="btn-secondary" id="removeWinner">Ta bort vinnare</button>
+      </div>
+    </div>
+  </div>
+
+  <canvas id="confetti" class="confetti"></canvas>
+
+  <script src="script.js"></script>
+</body>
+</html>
