@@ -148,6 +148,7 @@
 
 html, body {
   height: 100%;
+  overflow-x: hidden;
 }
 
 body {
@@ -156,6 +157,7 @@ body {
   color: var(--fg);
   overflow-x: hidden;
   min-height: 100vh;
+  width: 100%;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   letter-spacing: -0.01em;
@@ -359,7 +361,8 @@ input {
 
 .wheel-stage {
   position: relative;
-  width: min(640px, 92vw);
+  width: min(640px, 100%);
+  max-width: 100%;
   aspect-ratio: 1;
   display: grid;
   place-items: center;
@@ -703,23 +706,35 @@ input {
 }
 
 .item-remove {
-  width: 24px;
-  height: 24px;
+  width: 28px;
+  height: 28px;
   border-radius: 6px;
   display: grid;
   place-items: center;
   color: var(--fg-muted);
-  opacity: 0;
-  transition: all 0.15s var(--ease);
-}
-
-.item:hover .item-remove {
   opacity: 1;
+  transition: all 0.15s var(--ease);
+  flex-shrink: 0;
 }
 
-.item-remove:hover {
+/* Hide-on-hover behavior only on devices that actually support hover. On
+   touch devices (iOS, Android) the × stays visible so it can be tapped. */
+@media (hover: hover) and (pointer: fine) {
+  .item-remove {
+    opacity: 0;
+  }
+  .item:hover .item-remove {
+    opacity: 1;
+  }
+  .item-remove:hover {
+    color: #ff5577;
+    background: rgba(255, 85, 119, 0.12);
+  }
+}
+
+.item-remove:active {
   color: #ff5577;
-  background: rgba(255, 85, 119, 0.12);
+  background: rgba(255, 85, 119, 0.15);
 }
 
 .empty {
@@ -924,6 +939,35 @@ input {
   }
   .items-list {
     max-height: 280px;
+  }
+  /* 16px input prevents iOS Safari from auto-zooming on focus */
+  #itemInput {
+    font-size: 16px;
+  }
+  .hero {
+    margin-bottom: 36px;
+  }
+  .container {
+    padding: 24px 16px 60px;
+  }
+  .layout {
+    gap: 24px;
+  }
+  .panel {
+    padding: 18px;
+  }
+  /* Tighter theme switcher on mobile so it doesn't crowd the spin button */
+  .theme-switcher {
+    bottom: 16px;
+    right: 16px;
+  }
+  .theme-toggle {
+    width: 44px;
+    height: 44px;
+  }
+  .theme-toggle svg {
+    width: 18px;
+    height: 18px;
   }
 }
 
