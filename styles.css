@@ -240,8 +240,9 @@ input {
   aspect-ratio: 1;
   display: grid;
   place-items: center;
-  /* Isolate paint so wheel rotation never invalidates layers outside this box */
-  contain: layout paint;
+  /* New stacking context isolates compositing without clipping the glow/ring
+     that intentionally extend past the wheel. */
+  isolation: isolate;
 }
 
 .wheel-glow {
