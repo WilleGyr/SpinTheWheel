@@ -240,6 +240,8 @@ input {
   aspect-ratio: 1;
   display: grid;
   place-items: center;
+  /* Isolate paint so wheel rotation never invalidates layers outside this box */
+  contain: layout paint;
 }
 
 .wheel-glow {
@@ -799,4 +801,28 @@ input {
   .items-list {
     max-height: 280px;
   }
+}
+
+/* ============ SPIN PERF MODE ============ */
+/* While the wheel is spinning, neutralise effects that force per-frame
+   re-rasterisation (backdrop-filter, blurred pulses) so the compositor has
+   nothing to do besides advance the wheel transform. */
+body.is-spinning .panel {
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+  background: rgba(15, 15, 28, 0.9);
+}
+body.is-spinning .badge {
+  backdrop-filter: none;
+  -webkit-backdrop-filter: none;
+}
+body.is-spinning .aurora,
+body.is-spinning .wheel-ring,
+body.is-spinning .wheel-glow,
+body.is-spinning .dot {
+  animation-play-state: paused;
+}
+body.is-spinning .wheel-glow {
+  /* Freeze the pulsing glow at a mid-state so it doesn't pop on entry */
+  opacity: 0.8;
 }

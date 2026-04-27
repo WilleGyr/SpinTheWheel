@@ -357,6 +357,7 @@
   function spin() {
     if (isSpinning || items.length < 2) return;
     isSpinning = true;
+    document.body.classList.add('is-spinning');
     spinBtn.disabled = true;
     spinBtn.classList.add('spinning');
     hideResult();
@@ -372,28 +373,50 @@
     const duration = 5200 + Math.random() * 800;
     const t0 = performance.now();
 
-    function frame(now) {
-      const t = now - t0 >= duration ? 1 : (now - t0) / duration;
+    // Drive the rotation entirely on the compositor thread via the Web
+    // Animations API. Keyframes are pre-eased with easeOutQuart and
+    // interpolated linearly between, so the compositor never has to compute
+    // easing curves and the JS thread is free to stutter without the visible
+    // wheel ever skipping a frame.
+    const STEPS = 48;
+    const keyframes = new Array(STEPS + 1);
+    for (let i = 0; i <= STEPS; i++) {
+      const t = i / STEPS;
       const eased = easeOutQuart(t);
-      rotation = startRotation + totalDelta * eased;
-      applyRotation(rotation);
+      keyframes[i] = {
+        transform: `translateZ(0) rotate(${startRotation + totalDelta * eased}rad)`,
+        offset: t,
+      };
+    }
+    const animation = canvas.animate(keyframes, {
+      duration,
+      easing: 'linear',
+      fill: 'forwards',
+    });
 
-      const currentSeg = ((Math.floor(-rotation / segAngle) % n) + n) % n;
-      if (currentSeg !== lastTickSegment && lastTickSegment !== -1) {
+    // Light-weight tick loop: just math + an occasional class toggle on
+    // the pointer. No layout writes, no canvas redraws.
+    function tickLoop(now) {
+      if (!isSpinning) return;
+      const tt = now - t0 >= duration ? 1 : (now - t0) / duration;
+      const eased = easeOutQuart(tt);
+      const r = startRotation + totalDelta * eased;
+      const seg = ((Math.floor(-r / segAngle) % n) + n) % n;
+      if (seg !== lastTickSegment && lastTickSegment !== -1) {
         triggerTick();
       }
-      lastTickSegment = currentSeg;
-
-      if (t < 1) {
-        requestAnimationFrame(frame);
-      } else {
-        rotation = endRotation;
-        applyRotation(rotation);
-        finishSpin();
-      }
+      lastTickSegment = seg;
+      if (tt < 1) requestAnimationFrame(tickLoop);
     }
+    requestAnimationFrame(tickLoop);
 
-    requestAnimationFrame(frame);
+    animation.onfinish = () => {
+      // Persist the final transform as inline style, then drop the animation.
+      try { animation.commitStyles && animation.commitStyles(); } catch (_) {}
+      animation.cancel();
+      rotation = endRotation;
+      finishSpin();
+    };
   }
 
   function currentSegmentIndex() {
@@ -416,6 +439,7 @@
     isSpinning = false;
     spinBtn.disabled = false;
     spinBtn.classList.remove('spinning');
+    document.body.classList.remove('is-spinning');
 
     // Normalize rotation to keep numbers small, then re-apply so the canvas
     // visually matches the new (equivalent) angle.
