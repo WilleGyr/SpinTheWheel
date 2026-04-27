@@ -604,6 +604,67 @@
     resizeConfetti();
   });
 
+  // ====== THEME SWITCHER ======
+  const THEMES = [
+    // High-contrast dark
+    { id: 'midnight',  name: 'Midnight',       swatches: ['#0a0e1a', '#38bdf8', '#0ea5e9', '#7dd3fc'] },
+    { id: 'crimson',   name: 'Crimson',        swatches: ['#0e0606', '#ef4444', '#dc2626', '#fca5a5'] },
+    { id: 'emerald',   name: 'Emerald',        swatches: ['#050e0a', '#10b981', '#059669', '#6ee7b7'] },
+    { id: 'magenta',   name: 'Magenta',        swatches: ['#0e060a', '#ec4899', '#db2777', '#f9a8d4'] },
+    { id: 'tangerine', name: 'Tangerine',      swatches: ['#0e0905', '#fb923c', '#f97316', '#fed7aa'] },
+    { id: 'volt',      name: 'Volt',           swatches: ['#0c0c05', '#facc15', '#eab308', '#fef08a'] },
+    // Existing
+    { id: 'verdant',   name: 'Verdant',        swatches: ['#0a1410', '#52b788', '#95d5b2', '#74c69d'] },
+    { id: 'velvet',    name: 'Velvet & Gold',  swatches: ['#150a0e', '#d4af37', '#c9184a', '#ffd166'] },
+    { id: 'synthwave', name: 'Synthwave',      swatches: ['#0d0420', '#ff2a78', '#9d4edd', '#00f0ff'] },
+    { id: 'tokyo',     name: 'Tokyo Neon',     swatches: ['#000000', '#ff0080', '#fff200', '#00d9ff'] },
+    { id: 'mono',      name: 'Brutalist Mono', swatches: ['#000000', '#ff3b30', '#ffffff', '#ff6b6b'] },
+    { id: 'sakura',    name: 'Sakura',         swatches: ['#1a0a14', '#ffb7c5', '#ff7eb6', '#ffe5ec'] },
+    { id: 'vaporwave', name: 'Vaporwave',      swatches: ['#6b2dad', '#01cdfe', '#05ffa1', '#fffb96'] },
+    { id: 'glacier',   name: 'Glacier (light)',swatches: ['#f6f8fb', '#3b82f6', '#06b6d4', '#8b5cf6'] },
+  ];
+
+  const themeToggle = document.getElementById('themeToggle');
+  const themeMenu = document.getElementById('themeMenu');
+  const THEME_KEY = 'spinwheel.theme';
+  let activeTheme = localStorage.getItem(THEME_KEY) || 'midnight';
+  // If a previously-saved theme was removed, fall back to default
+  if (!THEMES.some((t) => t.id === activeTheme)) activeTheme = 'midnight';
+
+  THEMES.forEach((t) => {
+    const btn = document.createElement('button');
+    btn.dataset.theme = t.id;
+    btn.innerHTML = `
+      <span class="theme-swatch">
+        ${t.swatches.map((c) => `<span style="background:${c}"></span>`).join('')}
+      </span>
+      <span>${t.name}</span>
+    `;
+    btn.addEventListener('click', () => setTheme(t.id));
+    themeMenu.appendChild(btn);
+  });
+
+  function setTheme(id) {
+    activeTheme = id;
+    document.body.dataset.theme = id;
+    localStorage.setItem(THEME_KEY, id);
+    themeMenu.querySelectorAll('button').forEach((b) => {
+      b.classList.toggle('active', b.dataset.theme === id);
+    });
+  }
+
+  themeToggle.addEventListener('click', (e) => {
+    e.stopPropagation();
+    themeMenu.classList.toggle('open');
+  });
+  document.addEventListener('click', (e) => {
+    if (!themeMenu.contains(e.target) && e.target !== themeToggle && !themeToggle.contains(e.target)) {
+      themeMenu.classList.remove('open');
+    }
+  });
+
+  setTheme(activeTheme);
+
   // ====== INIT ======
   setupCanvas();
   resizeConfetti();
